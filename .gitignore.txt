@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+env/
+venv/
+
+# Logs
+*.log
+
+# OS / Editor Files
+.DS_Store
+Thumbs.db
+
+# Credentials
+*.pem
+*.key
+*.crt
+secrets.json
+config.json
+
+# Windows agent backup files
+*.ps1~

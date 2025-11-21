@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Server Monitor Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<h1>Server Monitor Dashboard</h1>
+
+{% if servers %}
+    {% for server_id, data in servers.items() %}
+    <div class="card">
+        <div class="server-name">
+            <a href="/server/{{ server_id }}">{{ server_id }}</a>
+        </div>
+        <div>Last Seen: {{ data.last_seen }}</div>
+        <div>CPU: {{ data.cpu }}%</div>
+        <div>Memory: {{ data.memory }}%</div>
+    </div>
+    {% endfor %}
+{% else %}
+    <p>No server data found.</p>
+{% endif %}
+
+</body>
+</html>

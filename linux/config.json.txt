@@ -1,0 +1,6 @@
+{
+    "aggregator_url": "http://YOUR-AGGREGATOR-IP:5000/api/submit",
+    "username": "admin",
+    "password": "SuperSecurePassword123",
+    "interval_seconds": 60
+}

@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+
+import subprocess
+import json
+import time
+import requests
+import socket
+from datetime import datetime
+import os
+
+# =======================
+# Load Config
+# =======================
+CONFIG_FILE = os.path.join(os.path.dirname(__file__), "config.json")
+
+with open(CONFIG_FILE, "r") as f:
+    cfg = json.load(f)
+
+AGGREGATOR_URL = cfg["aggregator_url"]
+USERNAME = cfg["username"]
+PASSWORD = cfg["password"]
+INTERVAL = cfg.get("interval_seconds", 60)
+
+
+# =======================
+# Helper to run commands
+# =======================
+def run(cmd):
+    try:
+        result = subprocess.check_output(cmd, shell=True).decode().strip()
+        return result
+    except:
+        return ""
+
+
+# =======================
+# Collect Metrics
+# =======================
+def collect_metrics():
+    return {
+        "agent_type": "linux",
+        "hostname": socket.gethostname(),
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "uptime": run("uptime -p"),
+        "cpu": run("top -bn1 | grep 'Cpu'"),
+        "disk": run("df -h / | tail -1"),
+        "memory": run("free -h | grep Mem"),
+        "failed_logins": run("grep 'Invalid user' /var/log/secure | wc -l"),
+    }
+
+
+# =======================
+# Send to Aggregator
+# =======================
+def post_metrics(metrics):
+    try:
+        response = requests.post(
+            AGGREGATOR_URL,
+            json=metrics,
+            auth=(USERNAME, PASSWORD),
+            timeout=10
+        )
+        print(f"[+] Sent metrics ({response.status_code})")
+    except Exception as e:
+        print(f"[!] Failed to send: {e}")
+
+
+# =======================
+# Main loop
+# =======================
+if __name__ == "__main__":
+    print("Linux agent started...")
+
+    while True:
+        metrics = collect_metrics()
+        post_metrics(metrics)
+        time.sleep(INTERVAL)

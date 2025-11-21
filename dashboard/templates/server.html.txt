@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ server_id }} - Server Metrics</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<h2>Server: {{ server_id }}</h2>
+
+<div class="card">
+    <p><strong>Last Seen:</strong> {{ server.last_seen }}</p>
+    <p><strong>CPU:</strong> {{ server.cpu }}%</p>
+    <p><strong>Memory:</strong> {{ server.memory }}%</p>
+    <p><strong>Disk:</strong> {{ server.disk }}%</p>
+    <p><strong>Network In:</strong> {{ server.net_in }} KB/s</p>
+    <p><strong>Network Out:</strong> {{ server.net_out }} KB/s</p>
+</div>
+
+<a href="/">Back</a>
+
+</body>
+</html>

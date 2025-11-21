@@ -1,0 +1,50 @@
+# Windows Metrics Agent
+# Sends metrics to central aggregator
+
+# Load Config
+$configPath = Join-Path $PSScriptRoot "config.json"
+$config = Get-Content $configPath | ConvertFrom-Json
+
+$aggregatorUrl = $config.aggregator_url
+$username      = $config.username
+$password      = $config.password
+$interval      = $config.interval_seconds
+
+function Get-Metrics {
+    $cpu = (Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
+    $disk = Get-CimInstance Win32_LogicalDisk -Filter "DriveType=3" | 
+        Select-Object DeviceID, @{N="FreeGB";E={[math]::Round($_.FreeSpace/1GB,2)}}
+
+    $failedLogons = (Get-EventLog -LogName Security -InstanceId 4625 -Newest 200 | Measure-Object).Count
+
+    return @{
+        agent_type   = "windows"
+        hostname     = $env:COMPUTERNAME
+        timestamp    = (Get-Date).ToUniversalTime().ToString("o")
+        uptime       = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+        cpu_load     = "$cpu%"
+        disk_info    = $disk
+        memory       = (Get-CimInstance Win32_OperatingSystem | Select-Object FreePhysicalMemory, TotalVisibleMemorySize)
+        failed_logins = $failedLogons
+    }
+}
+
+while ($true) {
+    try {
+        $metrics = Get-Metrics | ConvertTo-Json -Depth 5
+
+        Invoke-RestMethod -Uri $aggregatorUrl `
+            -Method Post `
+            -Body $metrics `
+            -ContentType "application/json" `
+            -Authentication Basic `
+            -Credential (New-Object System.Management.Automation.PSCredential($username,(ConvertTo-SecureString $password -AsPlainText -Force)))
+
+        Write-Host "[+] Metrics sent"
+    }
+    catch {
+        Write-Host "[!] Failed to send: $_"
+    }
+
+    Start-Sleep -Seconds $interval
+}

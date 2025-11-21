@@ -1,0 +1,95 @@
+from flask import Flask, request, jsonify
+from functools import wraps
+from datetime import datetime
+import json
+import os
+import threading
+
+from config import AGGREGATOR_USER, AGGREGATOR_PASS
+
+app = Flask(__name__)
+
+DATA_FILE = "aggregated_results.json"
+
+# Thread-safe write lock
+lock = threading.Lock()
+
+# In-memory store of all metrics
+METRICS = []
+
+
+# ------------------------------
+# Basic Auth
+# ------------------------------
+def check_auth(username, password):
+    return username == AGGREGATOR_USER and password == AGGREGATOR_PASS
+
+
+def require_auth(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        auth = request.authorization
+        if not auth or not check_auth(auth.username, auth.password):
+            return jsonify({"error": "Unauthorized"}), 401
+        return func(*args, **kwargs)
+    return wrapper
+
+
+# ------------------------------
+# Load existing metrics on startup
+# ------------------------------
+if os.path.exists(DATA_FILE):
+    try:
+        with open(DATA_FILE, "r") as f:
+            METRICS = json.load(f)
+    except:
+        METRICS = []
+
+
+# ------------------------------
+# POST /submit — agents push data here
+# ------------------------------
+@app.post("/submit")
+@require_auth
+def submit_metrics():
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({"error": "Invalid JSON"}), 400
+
+        data["received_at"] = datetime.utcnow().isoformat() + "Z"
+
+        with lock:
+            METRICS.append(data)
+            with open(DATA_FILE, "w") as f:
+                json.dump(METRICS, f, indent=4)
+
+        return jsonify({"status": "success"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ------------------------------
+# GET /metrics — view all metrics
+# ------------------------------
+@app.get("/metrics")
+@require_auth
+def get_metrics():
+    return jsonify(METRICS), 200
+
+
+# ------------------------------
+# GET /health — simple health check
+# ------------------------------
+@app.get("/health")
+def health():
+    return jsonify({"status": "ok"}), 200
+
+
+# ------------------------------
+# Flask entry point
+# ------------------------------
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)

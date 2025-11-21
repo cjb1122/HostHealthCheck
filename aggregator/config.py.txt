@@ -1,0 +1,23 @@
+import os
+
+# ===============================
+# Basic Authentication
+# ===============================
+
+# Username and password agents will use when sending metrics
+AGGREGATOR_USER = os.getenv("AGG_USER", "admin")
+AGGREGATOR_PASS = os.getenv("AGG_PASS", "SuperSecurePassword123")
+
+# ===============================
+# Storage / File Settings
+# ===============================
+
+# Location where aggregated JSON is stored
+DATA_FILE = os.getenv("AGG_DATA_FILE", "aggregated_results.json")
+
+# Optional: directory for other output
+OUTPUT_DIR = os.getenv("AGG_OUTPUT_DIR", "./")
+
+# Ensure folder exists
+if not os.path.exists(OUTPUT_DIR):
+    os.makedirs(OUTPUT_DIR)
